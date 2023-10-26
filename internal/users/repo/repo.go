@@ -8,21 +8,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const (
-	DELETE_BY_ID = "DELETE FROM users WHERE id = $1"
-	ADD          = "INSERT INTO users (name, surname, patronymic, age, gender, nationalize) VALUES (:name, :surname, :patronymic, :age, :gender, :nationalize)"
-	UPDATE_BY_ID = `UPDATE users SET name = COALESCE(NULLIF(:name, ''), name), surname = COALESCE(NULLIF(:surname, ''), surname), patronymic = COALESCE(NULLIF(:patronymic, ''), patronymic), age = COALESCE(NULLIF(:age, 0), age), gender = COALESCE(NULLIF(:gender, ''), gender), nationalize = COALESCE(NULLIF(:nationalize, ''), nationalize)
-WHERE id = :id
-RETURNING *
-`
-)
-
 type UsersRepo struct {
 	db *sqlx.DB
 }
 
 func NewUsersRepo(db *sqlx.DB) users.Repository {
-	return &UsersRepo{db: db}
+	return &UsersRepo{db}
 }
 
 func (s *UsersRepo) DeleteById(ctx context.Context, id int) error {
@@ -33,32 +24,36 @@ func (s *UsersRepo) DeleteById(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *UsersRepo) UpdateById(ctx context.Context, user *users.User) (*users.User, error) {
-	var updatedUser users.User
+func (s *UsersRepo) UpdateById(ctx context.Context, user *users.User) (users.User, error) {
 
 	req, err := s.db.PrepareNamedContext(ctx, UPDATE_BY_ID)
 	if err != nil {
-		return nil, fmt.Errorf("users.repo.UpdateById.prepare: %v", err)
-	}
-	rows, _ := req.QueryxContext(ctx, user)
-	defer rows.Close()
-
-	if rows.Next() {
-		if err := rows.StructScan(&updatedUser); err != nil {
-			return nil, fmt.Errorf("users.repo.UpdateById.scan: %v", err)
-		}
+		return users.User{}, fmt.Errorf("users.repo.UpdateById.prepare: %v", err)
 	}
 
-	return &updatedUser, nil
+	var updatedUser users.User
+	if err := req.QueryRowxContext(ctx, user).StructScan(&updatedUser); err != nil {
+		return users.User{}, fmt.Errorf("users.repo.UpdateById.scan: %v", err)
+	}
+
+	return updatedUser, nil
 }
 
-func (s *UsersRepo) Add(ctx context.Context, user *users.UserDto) error {
-	_, err := s.db.NamedExecContext(ctx, ADD, user)
+func (s *UsersRepo) Add(ctx context.Context, user *users.User) (users.User, error) {
+
+	query, err := s.db.PrepareNamedContext(ctx, ADD_USER)
 	if err != nil {
-		return err
+		return users.User{}, fmt.Errorf("users.repo.add.prepare: %w", err)
 	}
-	return nil
+
+	userRet := users.User{}
+	if err := query.QueryRowx(user).StructScan(&userRet); err != nil {
+		return users.User{}, fmt.Errorf("users.repo.add.scan: %w", err)
+	}
+
+	return userRet, nil
 }
+
 func (s *UsersRepo) GetAllFiltered(ctx context.Context, filter *users.UserFilter) ([]users.User, error) {
 
 	query, err := filter.CreateQuery()

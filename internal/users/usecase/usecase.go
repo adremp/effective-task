@@ -21,14 +21,14 @@ func NewUsersUc(usersRepo users.Repository) users.Usecase {
 func (s *usersUc) DeleteById(ctx context.Context, id int) error {
 	return s.usersRepo.DeleteById(ctx, id)
 }
-func (c *usersUc) Add(ctx context.Context, user *users.UserDto) error {
+func (c *usersUc) Add(ctx context.Context, user *users.User) (users.User, error) {
 
 	enrichData, err := enrichUser(user.Name)
 	if err != nil {
-		return fmt.Errorf("users.usecase.add: %v", err)
+		return users.User{}, fmt.Errorf("users.usecase.add: %w", err)
 	}
 
-	userRet := users.UserDto{
+	userRet := users.User{
 		Name:        user.Name,
 		Surname:     user.Surname,
 		Patronymic:  user.Patronymic,
@@ -105,6 +105,6 @@ func (s *usersUc) GetAllFiltered(ctx context.Context, filter *users.UserFilter) 
 	return s.usersRepo.GetAllFiltered(ctx, filter)
 }
 
-func (s *usersUc) UpdateById(ctx context.Context, user *users.User) (*users.User, error) {
+func (s *usersUc) UpdateById(ctx context.Context, user *users.User) (users.User, error) {
 	return s.usersRepo.UpdateById(ctx, user)
 }

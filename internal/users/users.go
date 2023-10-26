@@ -18,25 +18,16 @@ type Handler interface {
 
 type Usecase interface {
 	DeleteById(context.Context, int) error
-	UpdateById(context.Context, *User) (*User, error)
-	Add(context.Context, *UserDto) error
+	UpdateById(context.Context, *User) (User, error)
+	Add(context.Context, *User) (User, error)
 	GetAllFiltered(context.Context, *UserFilter) ([]User, error)
 }
 
 type Repository interface {
 	DeleteById(context.Context, int) error
-	UpdateById(context.Context, *User) (*User, error)
-	Add(context.Context, *UserDto) error
+	UpdateById(context.Context, *User) (User, error)
+	Add(context.Context, *User) (User, error)
 	GetAllFiltered(context.Context, *UserFilter) ([]User, error)
-}
-
-type UserDto struct {
-	Name        string
-	Surname     string
-	Patronymic  string
-	Age         int
-	Gender      string
-	Nationalize string
 }
 
 type User struct {
@@ -51,11 +42,12 @@ type User struct {
 
 type UserFilter struct {
 	utils.PageFilter
-	Name        string `query:"name"`
-	Surname     string `query:"surname"`
-	Patronymic  string `query:"patronymic"`
-	Age         int `query:"age"`
-	Nationalize string `query:"nationalize"`
+	Name        string `db:"name"`
+	Surname     string `db:"surname"`
+	Patronymic  string `db:"patronymic"`
+	Age         int    `db:"age"`
+	Gender      string `db:"gender"`
+	Nationalize string `db:"nationalize"`
 }
 
 func (f *UserFilter) CreateQuery() (string, error) {
@@ -72,6 +64,9 @@ func (f *UserFilter) CreateQuery() (string, error) {
 	}
 	if f.Age != 0 {
 		queryArr = append(queryArr, utils.ParseMinMaxMaybeQuery("age", fmt.Sprintf("%v", f.Age)))
+	}
+	if f.Gender != "" {
+		queryArr = append(queryArr, fmt.Sprintf("gender ILIKE '%v'", f.Gender))
 	}
 	if f.Nationalize != "" {
 		queryArr = append(queryArr, fmt.Sprintf("nationalize ILIKE '%v'", f.Nationalize))

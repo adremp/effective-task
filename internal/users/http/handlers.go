@@ -2,7 +2,7 @@ package http
 
 import (
 	"effective-task/internal/users"
-	"fmt"
+	"effective-task/pkg/utils"
 	"log"
 	"strconv"
 
@@ -14,7 +14,7 @@ type usersHandlers struct {
 }
 
 func NewUsersHandlers(usersUc users.Usecase) users.Handler {
-	return &usersHandlers{usersUc: usersUc}
+	return &usersHandlers{usersUc}
 }
 
 func (s *usersHandlers) DeleteById() echo.HandlerFunc {
@@ -22,46 +22,56 @@ func (s *usersHandlers) DeleteById() echo.HandlerFunc {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			log.Print(err)
-			c.JSON(400, "id must be int")
+			return c.JSON(400, "id must be int")
 		}
 
 		if err := s.usersUc.DeleteById(c.Request().Context(), id); err != nil {
 			log.Print(err)
-			c.JSON(500, "error")
+			return c.JSON(500, "error")
 		}
 		return c.JSON(200, "ok")
 	}
 }
 
 func (s *usersHandlers) Add() echo.HandlerFunc {
+	type UserAdd struct {
+		users.User
+		Name    string `validate:"required"`
+		Surname string `validate:"required"`
+	}
 	return func(c echo.Context) error {
-		var user users.UserDto
-		if err := c.Bind(&user); err != nil {
+		var user UserAdd
+		if err := utils.SanitizeRequest(c, &user); err != nil {
 			log.Print(err)
-			c.JSON(400, err)
+			return c.JSON(400, err)
 		}
 
-		if err := s.usersUc.Add(c.Request().Context(), &user); err != nil {
+		userToAdd := user.User
+		userToAdd.Name = user.Name
+		userToAdd.Surname = user.Surname
+
+		userRet, err := s.usersUc.Add(c.Request().Context(), &userToAdd)
+		if err != nil {
 			log.Print(err)
-			c.JSON(500, err)
+			return c.JSON(500, err)
 		}
 
-		return c.JSON(200, "ok")
+		return c.JSON(200, userRet)
 	}
 }
 
 func (s *usersHandlers) GetAllFiltered() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var filter users.UserFilter
-		if err := c.Bind(&filter); err != nil {
-			fmt.Print(err)
-			c.JSON(400, err)
+		if err := utils.SanitizeRequest(c, &filter); err != nil {
+			log.Print(err)
+			return c.JSON(400, err)
 		}
 
 		users, err := s.usersUc.GetAllFiltered(c.Request().Context(), &filter)
 		if err != nil {
-			fmt.Print(err)
-			c.JSON(500, err)
+			log.Print(err)
+			return c.JSON(500, err)
 		}
 
 		return c.JSON(200, users)
@@ -69,23 +79,26 @@ func (s *usersHandlers) GetAllFiltered() echo.HandlerFunc {
 }
 
 func (s *usersHandlers) UpdateById() echo.HandlerFunc {
+	type UpdateUser struct {
+		users.User
+		Id int `validate:"required"`
+	}
 	return func(c echo.Context) error {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			log.Print(err)
-			c.JSON(400, "id must be int")
-		}
-		var user users.User
-		if err := c.Bind(&user); err != nil {
-			log.Printf("users.bind: %v", err)
-			c.JSON(400, err)
-		}
-		user.Id = id
+		id, _ := strconv.Atoi(c.Param("id"))
 
-		userUpdated, err := s.usersUc.UpdateById(c.Request().Context(), &user)
+		user := UpdateUser{Id: id}
+		if err := utils.SanitizeRequest(c, &user); err != nil {
+			log.Print(err)
+			return c.JSON(400, err)
+		}
+
+		userToUpdate := user.User
+		userToUpdate.Id = user.Id
+
+		userUpdated, err := s.usersUc.UpdateById(c.Request().Context(), &userToUpdate)
 		if err != nil {
 			log.Print(err)
-			c.JSON(500, err)
+			return c.JSON(500, err)
 		}
 
 		return c.JSON(200, userUpdated)
