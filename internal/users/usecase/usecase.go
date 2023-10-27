@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type usersUc struct {
@@ -22,8 +23,9 @@ func (s *usersUc) DeleteById(ctx context.Context, id int) error {
 	return s.usersRepo.DeleteById(ctx, id)
 }
 func (c *usersUc) Add(ctx context.Context, user *users.User) (users.User, error) {
-
-	enrichData, err := enrichUser(user.Name)
+	tctx, cancel := context.WithTimeout(ctx, 100*time.Microsecond)
+	defer cancel()
+	enrichData, err := enrichUser(tctx, user.Name)
 	if err != nil {
 		return users.User{}, fmt.Errorf("users.usecase.add: %w", err)
 	}
@@ -54,7 +56,7 @@ type respRet struct {
 	Country string
 }
 
-func enrichUser(username string) (respRet, error) {
+func enrichUser(ctx context.Context, username string) (respRet, error) {
 
 	urls := []string{
 		fmt.Sprintf("https://api.agify.io/?name=%v", username),

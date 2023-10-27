@@ -2,8 +2,10 @@ package http
 
 import (
 	"effective-task/internal/users"
+	"effective-task/pkg/httpErrors"
 	"effective-task/pkg/utils"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
@@ -22,14 +24,14 @@ func (s *usersHandlers) DeleteById() echo.HandlerFunc {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			log.Print(err)
-			return c.JSON(400, "id must be int")
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
 		if err := s.usersUc.DeleteById(c.Request().Context(), id); err != nil {
 			log.Print(err)
-			return c.JSON(500, "error")
+			return c.JSON(httpErrors.RequestError(err))
 		}
-		return c.JSON(200, "ok")
+		return c.NoContent(http.StatusNoContent)
 	}
 }
 
@@ -43,7 +45,7 @@ func (s *usersHandlers) Add() echo.HandlerFunc {
 		var user UserAdd
 		if err := utils.SanitizeRequest(c, &user); err != nil {
 			log.Print(err)
-			return c.JSON(400, err)
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
 		userToAdd := user.User
@@ -53,10 +55,10 @@ func (s *usersHandlers) Add() echo.HandlerFunc {
 		userRet, err := s.usersUc.Add(c.Request().Context(), &userToAdd)
 		if err != nil {
 			log.Print(err)
-			return c.JSON(500, err)
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
-		return c.JSON(200, userRet)
+		return c.JSON(http.StatusCreated, userRet)
 	}
 }
 
@@ -65,16 +67,16 @@ func (s *usersHandlers) GetAllFiltered() echo.HandlerFunc {
 		var filter users.UserFilter
 		if err := utils.SanitizeRequest(c, &filter); err != nil {
 			log.Print(err)
-			return c.JSON(400, err)
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
 		users, err := s.usersUc.GetAllFiltered(c.Request().Context(), &filter)
 		if err != nil {
 			log.Print(err)
-			return c.JSON(500, err)
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
-		return c.JSON(200, users)
+		return c.JSON(http.StatusOK, users)
 	}
 }
 
@@ -89,7 +91,7 @@ func (s *usersHandlers) UpdateById() echo.HandlerFunc {
 		user := UpdateUser{Id: id}
 		if err := utils.SanitizeRequest(c, &user); err != nil {
 			log.Print(err)
-			return c.JSON(400, err)
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
 		userToUpdate := user.User
@@ -98,9 +100,9 @@ func (s *usersHandlers) UpdateById() echo.HandlerFunc {
 		userUpdated, err := s.usersUc.UpdateById(c.Request().Context(), &userToUpdate)
 		if err != nil {
 			log.Print(err)
-			return c.JSON(500, err)
+			return c.JSON(httpErrors.RequestError(err))
 		}
 
-		return c.JSON(200, userUpdated)
+		return c.JSON(http.StatusOK, userUpdated)
 	}
 }

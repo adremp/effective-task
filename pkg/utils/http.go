@@ -1,6 +1,9 @@
 package utils
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
+)
 
 
 func SanitizeRequest[T any](c echo.Context, request *T) error {
@@ -9,7 +12,7 @@ func SanitizeRequest[T any](c echo.Context, request *T) error {
 	}
 
 	if err := Validate.Struct(request); err != nil {
-		return err
+		return err.(validator.ValidationErrors)
 	}
 
 	return nil

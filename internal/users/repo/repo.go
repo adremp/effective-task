@@ -4,6 +4,7 @@ import (
 	"context"
 	"effective-task/internal/users"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -19,7 +20,7 @@ func NewUsersRepo(db *sqlx.DB) users.Repository {
 func (s *UsersRepo) DeleteById(ctx context.Context, id int) error {
 	_, err := s.db.ExecContext(ctx, DELETE_BY_ID, id)
 	if err != nil {
-		return fmt.Errorf("users.repo.DeleteById: %v", err)
+		return fmt.Errorf("users.repo.DeleteById: %w", err)
 	}
 	return nil
 }
@@ -28,12 +29,12 @@ func (s *UsersRepo) UpdateById(ctx context.Context, user *users.User) (users.Use
 
 	req, err := s.db.PrepareNamedContext(ctx, UPDATE_BY_ID)
 	if err != nil {
-		return users.User{}, fmt.Errorf("users.repo.UpdateById.prepare: %v", err)
+		return users.User{}, fmt.Errorf("users.repo.UpdateById.prepare: %w", err)
 	}
 
 	var updatedUser users.User
 	if err := req.QueryRowxContext(ctx, user).StructScan(&updatedUser); err != nil {
-		return users.User{}, fmt.Errorf("users.repo.UpdateById.scan: %v", err)
+		return users.User{}, fmt.Errorf("users.repo.UpdateById.scan: %w", err)
 	}
 
 	return updatedUser, nil
@@ -58,12 +59,13 @@ func (s *UsersRepo) GetAllFiltered(ctx context.Context, filter *users.UserFilter
 
 	query, err := filter.CreateQuery()
 	if err != nil {
-		return nil, fmt.Errorf("users.repo.CreateQuery: %v", err)
+		return nil, fmt.Errorf("users.repo.CreateQuery: %w", err)
 	}
+	time.Sleep(5 * time.Second)
 
 	var usersRet []users.User
 	if err := s.db.SelectContext(ctx, &usersRet, fmt.Sprintf("SELECT * FROM users %v", query)); err != nil {
-		return nil, fmt.Errorf("users.repo.Select: %v", err)
+		return nil, fmt.Errorf("users.repo.Select: %w", err)
 	}
 
 	return usersRet, nil
