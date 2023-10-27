@@ -70,6 +70,8 @@ func (s *usersHandlers) GetAllFiltered() echo.HandlerFunc {
 			return c.JSON(httpErrors.RequestError(err))
 		}
 
+		log.Printf("filter: %+v", filter)
+
 		users, err := s.usersUc.GetAllFiltered(c.Request().Context(), &filter)
 		if err != nil {
 			log.Print(err)

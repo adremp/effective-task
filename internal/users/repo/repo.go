@@ -4,7 +4,6 @@ import (
 	"context"
 	"effective-task/internal/users"
 	"fmt"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -61,7 +60,6 @@ func (s *UsersRepo) GetAllFiltered(ctx context.Context, filter *users.UserFilter
 	if err != nil {
 		return nil, fmt.Errorf("users.repo.CreateQuery: %w", err)
 	}
-	time.Sleep(5 * time.Second)
 
 	var usersRet []users.User
 	if err := s.db.SelectContext(ctx, &usersRet, fmt.Sprintf("SELECT * FROM users %v", query)); err != nil {

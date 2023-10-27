@@ -7,8 +7,8 @@ import (
 const defaultLimit = 10
 
 type PageFilter struct {
-	Page  int
-	Limit int
+	Page  int `query:"page"`
+	Limit int `query:"limit"`
 }
 
 func (p *PageFilter) WithQuery(query string) string {

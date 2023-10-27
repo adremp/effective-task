@@ -42,12 +42,12 @@ type User struct {
 
 type UserFilter struct {
 	utils.PageFilter
-	Name        string `db:"name"`
-	Surname     string `db:"surname"`
-	Patronymic  string `db:"patronymic"`
-	Age         int    `db:"age"`
-	Gender      string `db:"gender"`
-	Nationalize string `db:"nationalize"`
+	Name        string `db:"name" query:"name"`
+	Surname     string `db:"surname" query:"surname"`
+	Patronymic  string `db:"patronymic" query:"patronymic"`
+	Age         int    `db:"age" query:"age"`
+	Gender      string `db:"gender" query:"age"`
+	Nationalize string `db:"nationalize" query:"nationalize"`
 }
 
 func (f *UserFilter) CreateQuery() (string, error) {
