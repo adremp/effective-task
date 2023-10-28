@@ -50,32 +50,51 @@ type UserFilter struct {
 	Nationalize string `db:"nationalize" query:"nationalize"`
 }
 
-func (f *UserFilter) CreateQuery() (string, error) {
+type fF struct {
+	idx   int
+	field string
+}
+
+func formatField(p fF) string {
+	return fmt.Sprintf("%v ILIKE $%v", p.field, p.idx)
+}
+
+func (f *UserFilter) CreateQuery() (string, []string, error) {
 	var queryArr []string
+	var valuesArr []string
+
+	idx, format := utils.WithIncreasing(formatField)
 
 	if f.Name != "" {
-		queryArr = append(queryArr, fmt.Sprintf("name ILIKE '%v'", f.Name))
+		queryArr = append(queryArr, format(fF{*idx, "name"}))
+		valuesArr = append(valuesArr, f.Name)
 	}
 	if f.Surname != "" {
-		queryArr = append(queryArr, fmt.Sprintf("surname ILIKE '%v'", f.Surname))
+		queryArr = append(queryArr, format(fF{*idx, "surname"}))
+		valuesArr = append(valuesArr, f.Surname)
 	}
 	if f.Patronymic != "" {
-		queryArr = append(queryArr, fmt.Sprintf("patronymic ILIKE '%v'", f.Patronymic))
+		queryArr = append(queryArr, format(fF{*idx, "patronymic"}))
+		valuesArr = append(valuesArr, f.Patronymic)
 	}
 	if f.Age != 0 {
-		queryArr = append(queryArr, utils.ParseMinMaxMaybeQuery("age", fmt.Sprintf("%v", f.Age)))
+		quer, valArr := utils.ParseMinMaxMaybeQuery(*idx, "age", fmt.Sprint(f.Age))
+		queryArr = append(queryArr, quer)
+		valuesArr = append(valuesArr, valArr...)
 	}
 	if f.Gender != "" {
-		queryArr = append(queryArr, fmt.Sprintf("gender ILIKE '%v'", f.Gender))
+		queryArr = append(queryArr, format(fF{*idx, "gender"}))
+		valuesArr = append(valuesArr, f.Gender)
 	}
 	if f.Nationalize != "" {
-		queryArr = append(queryArr, fmt.Sprintf("nationalize ILIKE '%v'", f.Nationalize))
+		queryArr = append(queryArr, format(fF{*idx, "nationalize"}))
+		valuesArr = append(valuesArr, f.Nationalize)
 	}
 
-	queryStr := strings.Join(queryArr, " AND ")
-	pageQuery := f.PageFilter.WithQuery(queryStr)
-	if queryStr != "" {
-		return fmt.Sprintf("WHERE %v", pageQuery), nil
+	pageQuery := f.PageFilter.CreateQuery()
+	if len(queryArr) > 0 {
+		queryStr := strings.Join(queryArr, " AND ")
+		return fmt.Sprintf("WHERE %v %v", queryStr, pageQuery), valuesArr, nil
 	}
-	return pageQuery, nil
+	return pageQuery, nil, nil
 }

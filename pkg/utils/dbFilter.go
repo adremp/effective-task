@@ -35,18 +35,26 @@ func FilterMap(data map[string]string, keys []string) map[string]string {
 	return filtered
 }
 
-func ParseMinMaxMaybeQuery(key, value string) string {
-	var ret []string
+func ParseMinMaxMaybeQuery(startArgIdx int, key, value string) (string, []string) {
+	argIdx := startArgIdx
+	var queryRet []string
+	var valuesRet []string
 	if strings.Contains(value, "-") {
-		age := strings.Split(value, "-")
+		valueArr := strings.Split(value, "-")
 
-		if age[0] == "" {
-			ret = append(ret, fmt.Sprintf("%s <= '%v'", key, age[1]))
+		if valueArr[0] != "" {
+			argIdx++
+			queryRet = append(queryRet, fmt.Sprintf("%s <= $%v", key, argIdx))
+			valuesRet = append(valuesRet, valueArr[0])
 		}
-		if age[1] == "" {
-			ret = append(ret, fmt.Sprintf("%s >= '%v'", key, age[0]))
+		if valueArr[1] != "" {
+			queryRet = append(queryRet, fmt.Sprintf("%s >= '%v'", key, valueArr[0]))
+			valueArr = append(valueArr, valueArr[1])
 		}
-		return strings.Join(ret, " AND ")
+		if len(valueArr) == 0 {
+			return "", []string{}
+		}
+		return strings.Join(queryRet, " AND "), valuesRet
 	}
-	return fmt.Sprintf("%s = '%v'", key, value)
+	return fmt.Sprintf("%s = $%v", key, argIdx), []string{value}
 }

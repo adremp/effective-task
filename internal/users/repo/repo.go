@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"effective-task/internal/users"
+	"effective-task/pkg/utils"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -56,13 +58,15 @@ func (s *UsersRepo) Add(ctx context.Context, user *users.User) (users.User, erro
 
 func (s *UsersRepo) GetAllFiltered(ctx context.Context, filter *users.UserFilter) ([]users.User, error) {
 
-	query, err := filter.CreateQuery()
+	query, values, err := filter.CreateQuery()
 	if err != nil {
 		return nil, fmt.Errorf("users.repo.CreateQuery: %w", err)
 	}
 
+	log.Printf("query: %v values: %v", query, values)
+
 	var usersRet []users.User
-	if err := s.db.SelectContext(ctx, &usersRet, fmt.Sprintf("SELECT * FROM users %v", query)); err != nil {
+	if err := s.db.SelectContext(ctx, &usersRet, fmt.Sprintf("SELECT * FROM users %v", query), utils.ArrayToInterface(values)...); err != nil {
 		return nil, fmt.Errorf("users.repo.Select: %w", err)
 	}
 

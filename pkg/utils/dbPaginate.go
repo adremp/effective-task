@@ -11,11 +11,11 @@ type PageFilter struct {
 	Limit int `query:"limit"`
 }
 
-func (p *PageFilter) WithQuery(query string) string {
+func (p *PageFilter) CreateQuery() string {
 	var pageQ string
 	var limitQ string
 
-	if p.Limit == 0 || p.Page > 0 {
+	if p.Limit == 0 && p.Page > 0 {
 		p.Limit = defaultLimit
 	}
 	if p.Page > 0 {
@@ -25,5 +25,5 @@ func (p *PageFilter) WithQuery(query string) string {
 		limitQ = fmt.Sprintf(" LIMIT %d", p.Limit)
 	}
 
-	return fmt.Sprintf("%s%s%s", query, pageQ, limitQ)
+	return fmt.Sprintf("%s%s", pageQ, limitQ)
 }
